@@ -1,25 +1,93 @@
 import numpy as np
+import cv2 as cv
 from argparse import ArgumentParser
 from PIL import Image
+import pandas as pd
 import os
+import urllib.parse
 
-def threshold(img, threshold=0.1):
-    img = (img > threshold).astype(int)
-    return img
+def threshold(img, intensity, threshold=0.1):
+    img = (img > threshold).astype(np.uint8)
+    return img * intensity
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Process masks')
     parser.add_argument('-d', '--directory', required=True, help='Mask directory')
+    parser.add_argument('-o', '--output', required=False, help='Output directory')
+    parser.add_argument('-s', '--suffix', required=False, help='Suffix to add to the mask name', default='_mask')    
+    parser.add_argument('-b', '--bindings', required=False, help='Csv file with bindings between masks and images (exported from LabelStudio)')
     args = parser.parse_args()
     mask_dir = args.directory
 
+    save_dir = ""
+    if args.output:
+        save_dir = args.output
+    else:
+        save_dir = mask_dir
+
+    bindings_dict = {}
+    if args.bindings:
+        bindings = pd.read_csv(args.bindings, usecols=['annotation_id', 'image'])
+        # Create a dictionary with the bindings, where the key is the task id and the value is the image path
+        # Example: {'task_1': 'path/to/image_1.jpg', 'task_2': 'path/to/image_2.jpg'}
+        # The dictionary is used to map the task id to the image name
+        # The csv file is exported from LabelStudio
+        bindings_dict = {k: v[0] for k, v in bindings.set_index('annotation_id').T.to_dict('list').items()}
+
+        # Remove the path from the image name
+        for k, v in bindings_dict.items():
+            decoded_path = urllib.parse.unquote(v)
+            bindings_dict[k] = os.path.basename(decoded_path)
+
+    annotation_dict = {}
+    
     for mask in os.listdir(mask_dir):
         mask_path = os.path.join(mask_dir, mask)
-        mask_image = np.asarray(Image.open(mask_path))
         
-        # print("Unique values before threshold:", np.unique(mask_image))        
-        mask_image = threshold(mask_image)        
-        # print("Unique values after threshold:", np.unique(mask_image))
+        # Extract the annotation value from the file name
+        annotation = int(mask.split('-')[3])
+        # Add the file path to the corresponding list in the dictionary
+        if annotation not in annotation_dict:
+            annotation_dict[annotation] = []
+
         
-        mask_image = Image.fromarray(mask_image.astype(np.uint8))
-        mask_image.save(mask_path)
+        annotation_dict[annotation].append(mask_path)
+
+    class_intensity = {
+        'Hot Spot': 4,
+        'Third': 3,
+        'Greenery': 2,
+        'Row': 1,
+    }
+
+    # Combine the images
+    for id in annotation_dict.keys():
+        masks = annotation_dict[id]
+
+        with Image.open(masks[0]) as img:
+            size = np.asarray(img).shape
+            combined_mask = np.zeros(size, dtype=np.uint8)
+            print('Creating new mask')
+
+        for mask in masks:
+            mask_img = np.asarray(Image.open(mask))
+            type = mask.split('-')[-2]
+
+            mask_img = threshold(mask_img, class_intensity[type], 0.1)
+
+            # Use np.where to overwrite the pixel values where the new image is not zero
+            combined_mask = np.where(combined_mask < class_intensity[type], mask_img, combined_mask)
+            print(f'Added {mask} \nType: {type}\nIntensity: {class_intensity[type]}')
+
+        combined_mask = combined_mask.astype(np.uint8)
+        combined_mask = Image.fromarray(combined_mask)
+
+        save_dir = ""
+        if args.bindings:
+            image_name = bindings_dict[id].split('.')[0]
+            save_dir = os.path.join(save_dir, f'{image_name}{args.suffix}.png')
+        else:
+            save_dir = os.path.join(save_dir, f'{id}{args.suffix}.png')
+
+        combined_mask.save(save_dir)
+        print(f'Combined mask from annotation {id} saved to {save_dir}')

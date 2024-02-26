@@ -6,6 +6,12 @@
 
 ![input and output for a random image in the test dataset](https://i.imgur.com/GD8FcB7.png)
 
+## Change log
+Added a script `process_masks.py` for parsing masks exported from LabelStudio. The script will combine masks for the same image and save them in the specified directory (if not specified then the results are saved in the same directory as the masks).
+
+To get the required data, use semantic segmentation tempate in LabelStudio and then export masks as png. Those will be the images that the script will process. Also use the CSV export option. This file will be used to convert the annotation id to the image name.
+
+---
 
 Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.
 
