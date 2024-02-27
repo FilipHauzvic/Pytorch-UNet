@@ -25,6 +25,8 @@ if __name__ == "__main__":
     else:
         save_dir = mask_dir
 
+    print(save_dir)
+
     bindings_dict = {}
     if args.bindings:
         bindings = pd.read_csv(args.bindings, usecols=['annotation_id', 'image'])
@@ -82,12 +84,12 @@ if __name__ == "__main__":
         combined_mask = combined_mask.astype(np.uint8)
         combined_mask = Image.fromarray(combined_mask)
 
-        save_dir = ""
+        img_dir = ""
         if args.bindings:
             image_name = bindings_dict[id].split('.')[0]
-            save_dir = os.path.join(save_dir, f'{image_name}{args.suffix}.png')
+            img_dir = os.path.join(save_dir, f'{image_name}{args.suffix}.png')
         else:
-            save_dir = os.path.join(save_dir, f'{id}{args.suffix}.png')
+            img_dir = os.path.join(save_dir, f'{id}{args.suffix}.png')
 
-        combined_mask.save(save_dir)
-        print(f'Combined mask from annotation {id} saved to {save_dir}')
+        combined_mask.save(img_dir)
+        print(f'Combined mask from annotation {id} saved to {img_dir}')
