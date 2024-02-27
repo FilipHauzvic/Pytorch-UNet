@@ -29,9 +29,8 @@ def train_model(
         device,
         epochs: int = 5,
         batch_size: int = 1,
-        learning_rate: float = 1e-5,
+        learning_rate: float = 1e-3,
         val_percent: float = 0.1,
-        save_checkpoint: bool = True,
         img_scale: float = 0.5,
         amp: bool = False,
         weight_decay: float = 1e-8,
@@ -55,7 +54,7 @@ def train_model(
     experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
     experiment.config.update(
         dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-             val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
+             val_percent=val_percent, img_scale=img_scale, amp=amp)
     )
 
     logging.info(f'''Starting training:
@@ -64,24 +63,25 @@ def train_model(
         Learning rate:   {learning_rate}
         Training size:   {n_train}
         Validation size: {n_val}
-        Checkpoints:     {save_checkpoint}
         Device:          {device.type}
         Images scaling:  {img_scale}
         Mixed Precision: {amp}
     ''')
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
-    optimizer = optim.RMSprop(model.parameters(),
-                              lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
+    best_val_score = 0.0
+    best_loss = 0.0
 
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         model.train()
         epoch_loss = 0
+        save_checkpoint = False
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
                 images, true_masks = batch['image'], batch['mask']
@@ -114,6 +114,10 @@ def train_model(
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
 
+                if loss.item() > best_loss:
+                    best_loss = loss.item()
+                    save_checkpoint = True
+
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
@@ -137,6 +141,9 @@ def train_model(
                                 histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, amp)
+                        if val_score > best_val_score:
+                            best_val_score = val_score              
+                            save_checkpoint = True          
                         scheduler.step(val_score)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
