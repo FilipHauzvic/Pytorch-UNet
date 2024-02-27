@@ -170,6 +170,12 @@ def train_model(
             torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             logging.info(f'Checkpoint {epoch} saved!')
 
+    Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+    state_dict = model.state_dict()
+    state_dict['mask_values'] = dataset.mask_values
+    torch.save(state_dict, str(dir_checkpoint / 'final_model.pth'))
+    logging.info(f'Training completed!')
+
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
