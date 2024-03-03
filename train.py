@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
+from torchvision.transforms import v2 as T
 from pathlib import Path
 from torch import optim
 from torch.utils.data import DataLoader, random_split
@@ -38,7 +39,13 @@ def train_model(
         gradient_clipping: float = 1.0,
 ):
     # 1. Create dataset
-    dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask')
+    trans = T.Compose([
+        T.RandomHorizontalFlip(),
+        T.RandomVerticalFlip(),
+        T.RandomRotation(90),
+        T.RandomApply([T.RandomCrop(256)], p=0.1)
+    ])
+    dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', transforms=trans)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -184,7 +191,7 @@ def get_args():
     parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-5,
                         help='Learning rate', dest='lr')
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
-    parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
+    parser.add_argument('--scale', '-s', type=float, default=1, help='Downscaling factor of the images')
     parser.add_argument('--validation', '-v', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')

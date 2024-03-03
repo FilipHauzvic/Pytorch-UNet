@@ -15,6 +15,9 @@ To get the required data, use semantic segmentation tempate in LabelStudio and t
 ### Checkpointing
 The checkpoints are only saved if the validation loss is lower than the previous best. This is to avoid saving too many checkpoints and to keep the best ones.
 
+### Data augmentation
+Added data augmentation to the training pipeline. The augmentations are defined at the beginning of the `train_model` function in `train.py`. The augmentations are applied to the images and masks in the input dataset.
+
 ---
 
 Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.
