@@ -43,7 +43,6 @@ def train_model(
         T.RandomHorizontalFlip(),
         T.RandomVerticalFlip(),
         T.RandomRotation(90),
-        T.RandomApply([T.RandomCrop(256)], p=0.1)
     ])
     dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', transforms=trans)
 
