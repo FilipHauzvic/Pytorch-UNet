@@ -16,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', required=False, help='Output directory')
     parser.add_argument('-s', '--suffix', required=False, help='Suffix to add to the mask name', default='_mask')    
     parser.add_argument('-b', '--bindings', required=False, help='Csv file with bindings between masks and images (exported from LabelStudio)')
+    parser.add_argument('-r', '--remove', required=False, help='Remove the original masks', default=False, action='store_true')
     args = parser.parse_args()
     mask_dir = args.directory
 
@@ -51,7 +52,6 @@ if __name__ == "__main__":
         # Add the file path to the corresponding list in the dictionary
         if annotation not in annotation_dict:
             annotation_dict[annotation] = []
-
         
         annotation_dict[annotation].append(mask_path)
 
@@ -80,6 +80,10 @@ if __name__ == "__main__":
             # Use np.where to overwrite the pixel values where the new image is not zero
             combined_mask = np.where(combined_mask < class_intensity[type], mask_img, combined_mask)
             print(f'Added {mask} \nType: {type}\nIntensity: {class_intensity[type]}')
+
+            if args.remove:
+                os.remove(mask)
+                print(f'Removed {mask}')
 
         combined_mask = combined_mask.astype(np.uint8)
         combined_mask = Image.fromarray(combined_mask)
