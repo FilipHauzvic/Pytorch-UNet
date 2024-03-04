@@ -150,7 +150,6 @@ def train_model(
                         if val_score > best_val_score:
                             best_val_score = val_score              
                             save_checkpoint = True          
-                        scheduler.step(val_score)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
                         try:
@@ -168,6 +167,8 @@ def train_model(
                             })
                         except:
                             pass
+                        
+        scheduler.step(val_score)
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)

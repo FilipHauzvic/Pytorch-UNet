@@ -18,6 +18,9 @@ The checkpoints are only saved if the validation loss is lower than the previous
 ### Data augmentation
 Added data augmentation to the training pipeline. The augmentations are defined at the beginning of the `train_model` function in `train.py`. The augmentations are applied to the images and masks in the input dataset.
 
+### Scheduler step
+The scheduler step is now called once per epoch, at the end of the epoch.  
+
 ---
 
 Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.
