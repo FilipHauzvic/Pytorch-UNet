@@ -141,6 +141,8 @@ def train_model(
                     if global_step % division_step == 0:
                         histograms = {}
                         for tag, value in model.named_parameters():
+                            if value.grad is None:
+                                continue
                             tag = tag.replace('/', '.')
                             if not (torch.isinf(value) | torch.isnan(value)).any():
                                 histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
