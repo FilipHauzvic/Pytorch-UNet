@@ -56,10 +56,10 @@ if __name__ == "__main__":
         annotation_dict[annotation].append(mask_path)
 
     class_intensity = {
-        'Hot Spot': 4,
-        'Third': 3,
-        'Greenery': 2,
-        'Row': 1,
+        'Hot Spot': 255,
+        'Third': 200,
+        'Greenery': 150,
+        'Row': 100,
     }
 
     # Combine the images
@@ -77,8 +77,11 @@ if __name__ == "__main__":
 
             mask_img = threshold(mask_img, class_intensity[type], 0.1)
 
+            # Only consider pixels in the current mask that are not 0
+            mask_img_non_zero = np.where(mask_img != 0, mask_img, combined_mask)
+
             # Use np.where to overwrite the pixel values where the new image is not zero
-            combined_mask = np.where(combined_mask < class_intensity[type], mask_img, combined_mask)
+            combined_mask = np.where(combined_mask < class_intensity[type], mask_img_non_zero, combined_mask)
             print(f'Added {mask} \nType: {type}\nIntensity: {class_intensity[type]}')
 
             if args.remove:
