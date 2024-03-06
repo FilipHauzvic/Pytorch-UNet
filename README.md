@@ -21,6 +21,9 @@ Added data augmentation to the training pipeline. The augmentations are defined 
 ### Scheduler step
 The scheduler step is now called once per epoch, at the end of the epoch.  
 
+### Transfer learning
+Added the option to use transfer learning. The model is loaded from torch.hub as specified below. The encoder layers are frozen and the decoder layers are trained.
+
 ---
 
 Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.

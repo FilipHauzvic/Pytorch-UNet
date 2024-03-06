@@ -197,6 +197,7 @@ def get_args():
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
+    parser.add_argument('--transfer', action='store_true', default=False, help='Transfer learning')
 
     return parser.parse_args()
 
@@ -213,6 +214,24 @@ if __name__ == '__main__':
     # n_classes is the number of probabilities you want to get per pixel
     model = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
     model = model.to(memory_format=torch.channels_last)
+    if args.transfer:
+        from unet.unet_parts import OutConv
+        model = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=1)
+        model.n_classes = args.classes
+        model.bilinear = args.bilinear
+        model.outc = (OutConv(64, args.classes))
+        model.to(memory_format=torch.channels_last)
+
+        # Freeze layers in the encoder
+        for name, param in model.named_parameters():
+            if 'down' in name or 'inc' in name:
+                param.requires_grad = False
+
+        # Unfreeze layers in the decoder
+        for name, param in model.named_parameters():
+            if 'up' in name or 'outc' in name:
+                param.requires_grad = True
+
 
     logging.info(f'Network:\n'
                  f'\t{model.n_channels} input channels\n'
