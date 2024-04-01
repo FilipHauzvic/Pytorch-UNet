@@ -79,7 +79,11 @@ def train_model(
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)  # goal: maximize Dice score
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1, verbose=True)
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
-    criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+
+    # These weights need to be calculated based on the dataset
+    weights = [0.0014, 1.136, 1]
+    class_weights = torch.FloatTensor(weights).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_val_score = 0.0
     best_loss = 0.0

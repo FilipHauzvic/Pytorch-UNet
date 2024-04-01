@@ -56,9 +56,9 @@ if __name__ == "__main__":
         annotation_dict[annotation].append(mask_path)
 
     class_intensity = {
-        'Hot Spot': 255,
-        'Third': 200,
-        'Greenery': 150,
+        'Hot Spot': 1,
+        'Third': 2,
+        'Greenery': 1,
         'Row': 100,
     }
 
