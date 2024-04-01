@@ -77,7 +77,7 @@ def train_model(
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)  # goal: maximize Dice score
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1, verbose=True)
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
@@ -121,7 +121,7 @@ def train_model(
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
 
-                if loss.item() > best_loss:
+                if loss.item() < best_loss:
                     best_loss = loss.item()
                     save_checkpoint = True
 
@@ -152,13 +152,38 @@ def train_model(
                         val_score = evaluate(model, val_loader, device, amp)
                         if val_score > best_val_score:
                             best_val_score = val_score              
-                            save_checkpoint = True          
+                            save_checkpoint = True        
+
+                        # Calculate validation loss
+                        val_loss = 0.0
+                        model.eval()
+                        with torch.no_grad():
+                            for batch in val_loader:
+                                images, true_masks = batch['image'], batch['mask']
+                                images = images.to(device=device, dtype=torch.float32)
+                                true_masks = true_masks.to(device=device, dtype=torch.long)
+
+                                masks_pred = model(images)
+                                if model.n_classes == 1:
+                                    loss = criterion(masks_pred.squeeze(1), true_masks.float())
+                                    loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
+                                else:
+                                    loss = criterion(masks_pred, true_masks)
+                                    loss += dice_loss(
+                                        F.softmax(masks_pred, dim=1).float(),
+                                        F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
+                                        multiclass=True
+                                    )
+                                val_loss += loss.item()
+                        val_loss /= len(val_loader)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
+                        logging.info('Validation loss: {}'.format(val_loss))
                         try:
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
                                 'validation Dice': val_score,
+                                'validation loss': val_loss,
                                 'images': wandb.Image(images[0].cpu()),
                                 'masks': {
                                     'true': wandb.Image(true_masks[0].float().cpu()),
@@ -171,7 +196,7 @@ def train_model(
                         except:
                             pass
                         
-        scheduler.step(val_score)
+        scheduler.step()
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -191,7 +216,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
     parser.add_argument('--epochs', '-e', metavar='E', type=int, default=5, help='Number of epochs')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=1, help='Batch size')
-    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-5,
+    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-4,
                         help='Learning rate', dest='lr')
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
     parser.add_argument('--scale', '-s', type=float, default=1, help='Downscaling factor of the images')

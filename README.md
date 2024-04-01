@@ -13,10 +13,13 @@ Added a script `process_masks.py` for parsing masks exported from LabelStudio. T
 To get the required data, use semantic segmentation tempate in LabelStudio and then export masks as png. Those will be the images that the script will process. Also use the CSV export option. This file will be used to convert the annotation id to the image name.
 
 ### Checkpointing
-The checkpoints are only saved if the validation loss is lower than the previous best. This is to avoid saving too many checkpoints and to keep the best ones.
+The checkpoints are only saved if the validation (or training) loss is lower than the previous best. This is to avoid saving too many checkpoints and to keep the best ones.
 
 ### Data augmentation
 Added data augmentation to the training pipeline. The augmentations are defined at the beginning of the `train_model` function in `train.py`. The augmentations are applied to the images and masks in the input dataset.
+
+### Validation loss
+The validation loss is now calculated at the end of each epoch. The model is evaluated on the validation dataset and the loss is calculated.
 
 ### Scheduler step
 The scheduler step is now called once per epoch, at the end of the epoch.  
