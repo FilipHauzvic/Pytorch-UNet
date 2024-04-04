@@ -85,9 +85,10 @@ def train_model(
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
 
     # These weights need to be calculated based on the dataset
-    weights = [0.0014, 1.136, 1]
+    # weights = [0.0014, 1.136, 1]
+    weights = [0.5006, 403.372]
     class_weights = torch.FloatTensor(weights).to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss(weight=class_weights)
     # criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_val_score = 0.0
