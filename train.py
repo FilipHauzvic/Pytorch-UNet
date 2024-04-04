@@ -86,10 +86,10 @@ def train_model(
 
     # These weights need to be calculated based on the dataset
     # weights = [0.0014, 1.136, 1]
-    # weights = [0.5006, 403.372]
-    # class_weights = torch.FloatTensor(weights).to(device)
-    # criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss(weight=class_weights)
-    criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    weights = [0.5006, 403.372]
+    class_weights = torch.FloatTensor(weights).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss(weight=class_weights)
+    # criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_val_score = 0.0
     best_loss = 0.0
@@ -166,36 +166,36 @@ def train_model(
                             best_val_score = val_score              
                             save_checkpoint = True        
 
-                        # Calculate validation loss
-                        val_loss = 0.0
-                        model.eval()
-                        with torch.no_grad():
-                            for batch in val_loader:
-                                images, true_masks = batch['image'], batch['mask']
-                                images = images.to(device=device, dtype=torch.float32)
-                                true_masks = true_masks.to(device=device, dtype=torch.long)
+                        # # Calculate validation loss
+                        # val_loss = 0.0
+                        # model.eval()
+                        # with torch.no_grad():
+                        #     for batch in val_loader:
+                        #         images, true_masks = batch['image'], batch['mask']
+                        #         images = images.to(device=device, dtype=torch.float32)
+                        #         true_masks = true_masks.to(device=device, dtype=torch.long)
 
-                                masks_pred = model(images)
-                                if model.n_classes == 1:
-                                    loss = criterion(masks_pred.squeeze(1), true_masks.float())
-                                    loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
-                                else:
-                                    loss = criterion(masks_pred, true_masks)
-                                    loss += dice_loss(
-                                        F.softmax(masks_pred, dim=1).float(),
-                                        F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
-                                        multiclass=True
-                                    )
-                                val_loss += loss.item()
-                        val_loss /= len(val_loader)
+                        #         masks_pred = model(images)
+                        #         if model.n_classes == 1:
+                        #             loss = criterion(masks_pred.squeeze(1), true_masks.float())
+                        #             loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
+                        #         else:
+                        #             loss = criterion(masks_pred, true_masks)
+                        #             loss += dice_loss(
+                        #                 F.softmax(masks_pred, dim=1).float(),
+                        #                 F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
+                        #                 multiclass=True
+                        #             )
+                        #         val_loss += loss.item()
+                        # val_loss /= len(val_loader)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
-                        logging.info('Validation loss: {}'.format(val_loss))
+                        # logging.info('Validation loss: {}'.format(val_loss))
                         try:
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
                                 'validation Dice': val_score,
-                                'validation loss': val_loss,
+                                # 'validation loss': val_loss,
                                 'images': wandb.Image(images[0].cpu()),
                                 'masks': {
                                     'true': wandb.Image(true_masks[0].float().cpu()),
