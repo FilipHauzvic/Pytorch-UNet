@@ -21,11 +21,11 @@ Added data augmentation to the training pipeline. The augmentations are defined 
 ### Validation loss
 The validation loss is now calculated at the end of each epoch. The model is evaluated on the validation dataset and the loss is calculated.
 
-### Scheduler step
-The scheduler step is now called once per epoch, at the end of the epoch.  
-
 ### Transfer learning
 Added the option to use transfer learning. The model is loaded from torch.hub as specified below. The encoder layers are frozen and the decoder layers are trained.
+
+### LR scheduler
+Added a toggle between StepLR and ReduceLROnPlateau. By default, the scheduler is set to ReduceLROnPlateau.
 
 ---
 

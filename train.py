@@ -37,6 +37,7 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
+        stepLR: bool = False
 ):
     # 1. Create dataset
     trans = T.Compose([
@@ -75,16 +76,19 @@ def train_model(
     ''')
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)  # goal: maximize Dice score
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
+    if stepLR:
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    else:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
 
     # These weights need to be calculated based on the dataset
-    # weights = [0.0014, 1.136, 1]
-    # class_weights = torch.FloatTensor(weights).to(device)
-    # criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss()
-    criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    weights = [0.0014, 1.136, 1]
+    class_weights = torch.FloatTensor(weights).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    # criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_val_score = 0.0
     best_loss = 0.0
@@ -155,6 +159,8 @@ def train_model(
                                 histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, amp)
+                        if not stepLR:
+                            scheduler.step(val_score)
                         if val_score > best_val_score:
                             best_val_score = val_score              
                             save_checkpoint = True        
@@ -200,8 +206,9 @@ def train_model(
                             })
                         except:
                             pass
-                        
-        scheduler.step()
+
+        if stepLR:
+            scheduler.step()
         save_checkpoint = epoch % 10 == 0
 
         if save_checkpoint:
@@ -232,6 +239,7 @@ def get_args():
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
     parser.add_argument('--transfer', action='store_true', default=False, help='Transfer learning')
+    parser.add_argument('--stepLR', action='store_true', default=False, help='Use StepLR scheduler (default: ReduceLROnPlateau)')
 
     return parser.parse_args()
 
@@ -288,7 +296,8 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp
+            amp=args.amp,
+            stepLR=args.stepLR
         )
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '

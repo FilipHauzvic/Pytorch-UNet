@@ -57,9 +57,9 @@ if __name__ == "__main__":
 
     class_intensity = {
         'Hot Spot': 1,
-        'Third': 2,
+        'Third': 0,
         'Greenery': 1,
-        'Row': 100,
+        'Row': 0,
     }
 
     # Combine the images
