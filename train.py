@@ -43,7 +43,7 @@ def train_model(
     trans = T.Compose([
         T.RandomHorizontalFlip(),
         T.RandomVerticalFlip(),
-        T.RandomRotation(90),
+        T.RandomRotation(5),
     ])
     dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', transforms=trans)
 
@@ -81,12 +81,12 @@ def train_model(
     if stepLR:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=10)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
 
     # These weights need to be calculated based on the dataset
     # weights = [0.0014, 1.136, 1]
-    weights = [0.5006, 403.372]
+    weights = [0.1, 0.9]
     class_weights = torch.FloatTensor(weights).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss(weight=class_weights)
     # criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
