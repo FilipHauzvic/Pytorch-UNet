@@ -86,7 +86,7 @@ def train_model(
 
     # These weights need to be calculated based on the dataset
     # weights = [0.0014, 1.136, 1]
-    weights = [0.1, 0.9]
+    weights = [400]
     class_weights = torch.FloatTensor(weights).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights) if model.n_classes > 1 else nn.BCEWithLogitsLoss(weight=class_weights)
     # criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
