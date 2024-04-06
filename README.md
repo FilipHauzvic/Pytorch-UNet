@@ -18,9 +18,6 @@ The checkpoints are only saved if the validation (or training) loss is lower tha
 ### Data augmentation
 Added data augmentation to the training pipeline. The augmentations are defined at the beginning of the `train_model` function in `train.py`. The augmentations are applied to the images and masks in the input dataset.
 
-### Validation loss
-The validation loss is now calculated at the end of each epoch. The model is evaluated on the validation dataset and the loss is calculated.
-
 ### Transfer learning
 Added the option to use transfer learning. The model is loaded from torch.hub as specified below. The encoder layers are frozen and the decoder layers are trained.
 

@@ -79,7 +79,7 @@ def train_model(
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay, foreach=True)
     # optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
     if stepLR:
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.1)
     else:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=10)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
