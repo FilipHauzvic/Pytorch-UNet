@@ -43,7 +43,10 @@ def train_model(
     trans = T.Compose([
         T.RandomHorizontalFlip(),
         T.RandomVerticalFlip(),
-        T.RandomRotation(5),
+        T.RandomRotation(90),
+        T.RandomResizedCrop(size=(512, 640), scale=(0.8, 1.0), ratio=(0.75, 1.333)),
+        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        T.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10),
     ])
     dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', transforms=trans)
 
@@ -81,7 +84,7 @@ def train_model(
     if stepLR:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.1)
     else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=10)  # goal: maximize Dice score
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=20)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
 
     # These weights need to be calculated based on the dataset
